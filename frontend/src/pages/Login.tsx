@@ -7,8 +7,8 @@ import { LIBERIA_COUNTIES, getRegion, setRegion } from "../lib/regions";
 
 export default function Login() {
   const { login } = useAuth();
-  const [username, setUsername] = useState("sjohnson");
-  const [password, setPassword] = useState("emr1234");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [region, setRegionState] = useState(getRegion() || "Montserrado");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -99,11 +99,6 @@ export default function Login() {
               {busy ? "Signing in…" : "→ Sign In Securely"}
             </button>
           </form>
-
-          <div className="login-hint">
-            <strong>Demo logins</strong> (password <code>emr1234</code>):<br />
-            <code>sjohnson</code> physician · <code>nwang</code> nurse · <code>fdesk</code> front-desk · <code>admin</code>
-          </div>
         </div>
         </div>
       </div>
