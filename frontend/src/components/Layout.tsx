@@ -27,6 +27,7 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [navOpen, setNavOpen] = useState(false); // mobile off-canvas sidebar
 
   function onSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +36,8 @@ export default function Layout() {
 
   return (
     <div className="shell">
-      <aside className="sidebar">
+      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
+      <aside className={`sidebar${navOpen ? " open" : ""}`}>
         <div className="sidebar-brand">
           <span className="logo-mark"><EagisLogo size={30} /></span>
           <span className="brand-text">
@@ -51,6 +53,7 @@ export default function Layout() {
               key={n.to}
               to={n.to}
               end={n.end}
+              onClick={() => setNavOpen(false)}
               className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
             >
               <span className="ico">{n.icon}</span>
@@ -67,6 +70,7 @@ export default function Layout() {
 
       <div className="main">
         <header className="topbar">
+          <button className="nav-toggle" onClick={() => setNavOpen(true)} aria-label="Open menu">☰</button>
           <form className="topbar-search" onSubmit={onSearch}>
             <span className="search-ico">🔍</span>
             <input

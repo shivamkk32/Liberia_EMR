@@ -35,7 +35,11 @@ jobs:
           docker push "$REGISTRY/$REPO:latest"
           docker push "$REGISTRY/$REPO:$TAG"
 
-      # App Runner can auto-deploy when :latest updates; this makes it explicit.
-      - name: Trigger App Runner deployment
-        if: vars.APPRUNNER_SERVICE_ARN != ''
-        run: aws apprunner start-deployment --service-arn "${{ vars.APPRUNNER_SERVICE_ARN }}"
+      # Force ECS to redeploy so it pulls the new :latest image (ECS Express).
+      # Cluster/service default to this deployment; override with repo variables.
+      - name: Redeploy ECS service
+        run: |
+          aws ecs update-service \
+            --cluster "${{ vars.ECS_CLUSTER || 'default' }}" \
+            --service "${{ vars.ECS_SERVICE || 'liberia-emr-francordsoft' }}" \
+            --force-new-deployment
