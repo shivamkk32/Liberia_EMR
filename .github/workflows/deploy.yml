@@ -36,27 +36,26 @@ jobs:
           docker push "$REGISTRY/$REPO:latest"
           docker push "$REGISTRY/$REPO:$TAG"
 
-      # Force ECS to redeploy so it pulls the new :latest image (ECS Express).
-      # Cluster/service default to this deployment; override with repo variables.
-      - name: Redeploy ECS service
+      # The ECS task definition pins an image digest, so a plain
+      # --force-new-deployment would just restart the old image. Register a new
+      # task-definition revision pointing at this commit's image and roll to it.
+      - name: Deploy new image to ECS
         env:
           CLUSTER: ${{ vars.ECS_CLUSTER || 'default' }}
           SERVICE: ${{ vars.ECS_SERVICE || 'liberia-emr-francordsoft' }}
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
         run: |
-          TD=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
-                 --query "services[0].deployments[?status=='PRIMARY'].taskDefinition | [0]" --output text)
-          echo "Task definition: $TD"
-          aws ecs describe-task-definition --task-definition "$TD" \
-            --query 'taskDefinition.containerDefinitions[].image' --output text
-          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
-            --force-new-deployment --query 'service.deployments[0].id' --output text
+          TD=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE"                  --query "services[0].deployments[?status=='PRIMARY'].taskDefinition | [0]" --output text)
+          echo "Current task definition: $TD"
+          aws ecs describe-task-definition --task-definition "$TD" --query taskDefinition             | jq --arg IMG "$IMAGE" '.containerDefinitions[0].image = $IMG
+                | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                      .compatibilities, .registeredAt, .registeredBy)' > td.json
+          NEW_TD=$(aws ecs register-task-definition --cli-input-json file://td.json                      --query taskDefinition.taskDefinitionArn --output text)
+          echo "New task definition: $NEW_TD -> $IMAGE"
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE"             --task-definition "$NEW_TD" --force-new-deployment             --query 'service.deployments[0].id' --output text
           # Fail the job if the new tasks never become healthy.
           aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE" || {
-            aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
-              --query 'services[0].events[:10].message' --output text; exit 1; }
-          aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
-            --query 'services[0].events[:5].message' --output text
+            aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE"               --query 'services[0].events[:10].message' --output text; exit 1; }
           for T in $(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE" --query 'taskArns[]' --output text); do
-            aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$T" \
-              --query 'tasks[0].[startedAt,containers[0].image,containers[0].imageDigest]' --output text
+            aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$T"               --query 'tasks[0].[startedAt,containers[0].image]' --output text
           done
