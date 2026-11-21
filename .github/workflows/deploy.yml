@@ -44,7 +44,7 @@ jobs:
           SERVICE: ${{ vars.ECS_SERVICE || 'liberia-emr-francordsoft' }}
         run: |
           TD=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
-                 --query 'services[0].taskDefinition' --output text)
+                 --query "services[0].deployments[?status=='PRIMARY'].taskDefinition | [0]" --output text)
           echo "Task definition: $TD"
           aws ecs describe-task-definition --task-definition "$TD" \
             --query 'taskDefinition.containerDefinitions[].image' --output text
