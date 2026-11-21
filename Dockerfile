@@ -22,6 +22,9 @@ COPY backend/ ./
 # Built SPA is served by FastAPI from ./static (see app/main.py).
 COPY --from=frontend /app/frontend/dist ./static
 
+# Staff password for seeded accounts, passed in from the CI secret SEED_PASSWORD.
+ARG SEED_PASSWORD=""
+ENV SEED_PASSWORD=${SEED_PASSWORD}
 ENV FRONTEND_DIR=/app/static \
     SEED_ON_START=1 \
     PORT=8000

@@ -30,8 +30,9 @@ jobs:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
           REPO: ${{ vars.ECR_REPOSITORY }}
           TAG: ${{ github.sha }}
+          SEED_PASSWORD: ${{ secrets.SEED_PASSWORD }}
         run: |
-          docker build -t "$REGISTRY/$REPO:latest" -t "$REGISTRY/$REPO:$TAG" .
+          docker build --build-arg SEED_PASSWORD="$SEED_PASSWORD" -t "$REGISTRY/$REPO:latest" -t "$REGISTRY/$REPO:$TAG" .
           docker push "$REGISTRY/$REPO:latest"
           docker push "$REGISTRY/$REPO:$TAG"
 

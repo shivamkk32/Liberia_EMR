@@ -7,7 +7,8 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 
-from .auth import hash_password
+from . import config
+from .auth import hash_password, verify_password
 from .database import SessionLocal, init_db
 from .permissions import PERMISSION_CATALOG, ROLE_PERMISSIONS, SEED_ROLES
 from . import models
@@ -40,6 +41,24 @@ def _seed_rbac(db):
         roles[key] = role
     db.flush()
     return roles
+
+
+def rotate_legacy_passwords() -> int:
+    """Move any account still on the old public dev password to SEED_PASSWORD.
+    No-op unless SEED_PASSWORD is set to something else. Returns users updated."""
+    if config.SEED_PASSWORD == config.LEGACY_SEED_PASSWORD:
+        return 0
+    db = SessionLocal()
+    try:
+        changed = 0
+        for u in db.query(models.User).all():
+            if verify_password(config.LEGACY_SEED_PASSWORD, u.hashed_password):
+                u.hashed_password = hash_password(config.SEED_PASSWORD)
+                changed += 1
+        db.commit()
+        return changed
+    finally:
+        db.close()
 
 
 def seed() -> None:
@@ -88,7 +107,7 @@ def seed() -> None:
                     role_id=role_obj.id if role_obj else None,
                     department=s["department"], email=s["email"], facility_id=s["facility_id"],
                     scope_level=s.get("scope_level", "Facility"),
-                    hashed_password=hash_password("emr1234"),
+                    hashed_password=hash_password(config.SEED_PASSWORD),
                 ),
             )
             # keep role_id in sync on reseed of existing users
@@ -313,7 +332,7 @@ def _report(db):
     print(f"  Appointments: {db.query(models.Appointment).count()}")
     print(f"  Notifications: {db.query(models.Notification).count()}")
     print(f"  Permissions : {db.query(models.Permission).count()}  Roles: {db.query(models.Role).count()}")
-    print("\nDemo logins (password: emr1234) — one per role for the RBAC demo:")
+    print("\nDemo logins (password: $SEED_PASSWORD; local default emr1234) — one per role:")
     print("  sjohnson  — Sarah Johnson, MD    (Doctor)")
     print("  mleo      — Michael Leo, MD      (Doctor — for transfer demo)")
     print("  nwang     — Nancy Wang, RN       (Nurse)")

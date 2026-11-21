@@ -76,7 +76,7 @@ npm run dev
 
 Open <http://localhost:5173>. Vite proxies `/api` → `http://localhost:8000`.
 
-### Demo logins (password `emr1234`)
+### Demo logins (local password `emr1234`; deployed builds use the `SEED_PASSWORD` GitHub secret)
 
 | Username   | Role        | Can do                                  |
 |------------|-------------|-----------------------------------------|

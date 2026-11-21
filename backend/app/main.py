@@ -44,6 +44,10 @@ def _startup() -> None:
             from .seed import seed
 
             seed()
+    # Retire the old public dev password wherever it is still in use.
+    from .seed import rotate_legacy_passwords
+
+    rotate_legacy_passwords()
 
 
 @app.get("/api/health", tags=["health"])

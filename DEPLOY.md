@@ -110,6 +110,6 @@ watch it under the repo's **Actions** tab.
 > SQLite reminder: App Runner storage is ephemeral, so demo data resets on each
 > deploy. Switch `DATABASE_URL` to Amazon RDS Postgres when you need persistence.
 
-## Demo logins (password `emr1234`)
+## Demo logins (local password `emr1234`; deployed builds use the `SEED_PASSWORD` GitHub secret)
 `admin` (System Admin) · `fadmin` (Facility Admin) · `sjohnson`/`mleo` (Doctors) ·
 `nwang` (Nurse) · `pmoore` (Pharmacist) · `ltech` (Lab) · `fdesk` (Front Desk)

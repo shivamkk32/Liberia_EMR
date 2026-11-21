@@ -14,7 +14,7 @@ Your job: prove the change works by observing real behavior for real roles, and 
 
 ## Preconditions
 - Ensure servers are up: `curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/` and `.../api/health`. If not, start them (backend needs the anaconda PATH export — see the backend skill).
-- Demo logins (password `emr1234`): `sjohnson` physician · `nwang` nurse · `fdesk` front-desk · `admin`. Region defaults are client-side.
+- Demo logins (local password `emr1234`; deployed uses the `SEED_PASSWORD` secret): `sjohnson` physician · `nwang` nurse · `fdesk` front-desk · `admin`. Region defaults are client-side.
 
 ## API verification pattern (curl)
 Log in → capture token → assert codes. Example boundary checks that MUST hold:
