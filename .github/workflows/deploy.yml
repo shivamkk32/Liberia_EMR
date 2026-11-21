@@ -39,8 +39,24 @@ jobs:
       # Force ECS to redeploy so it pulls the new :latest image (ECS Express).
       # Cluster/service default to this deployment; override with repo variables.
       - name: Redeploy ECS service
+        env:
+          CLUSTER: ${{ vars.ECS_CLUSTER || 'default' }}
+          SERVICE: ${{ vars.ECS_SERVICE || 'liberia-emr-francordsoft' }}
         run: |
-          aws ecs update-service \
-            --cluster "${{ vars.ECS_CLUSTER || 'default' }}" \
-            --service "${{ vars.ECS_SERVICE || 'liberia-emr-francordsoft' }}" \
-            --force-new-deployment
+          TD=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+                 --query 'services[0].taskDefinition' --output text)
+          echo "Task definition: $TD"
+          aws ecs describe-task-definition --task-definition "$TD" \
+            --query 'taskDefinition.containerDefinitions[].image' --output text
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+            --force-new-deployment --query 'service.deployments[0].id' --output text
+          # Fail the job if the new tasks never become healthy.
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE" || {
+            aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+              --query 'services[0].events[:10].message' --output text; exit 1; }
+          aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+            --query 'services[0].events[:5].message' --output text
+          for T in $(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE" --query 'taskArns[]' --output text); do
+            aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$T" \
+              --query 'tasks[0].[startedAt,containers[0].image,containers[0].imageDigest]' --output text
+          done
